@@ -820,7 +820,7 @@ public class Decider
                 using (StreamWriter ws = File.AppendText("../../test.txt"))
                     ws.WriteLine("BEST MOVE {0} {1}", bestCounterMoveValue, bestPossibleMoveValue);
             }
-            Console.Error.WriteLine("BEST MOVE {0} {1}", bestCounterMoveValue, bestPossibleMoveValue);
+            //Console.Error.WriteLine("BEST MOVE {0} {1}", bestCounterMoveValue, bestPossibleMoveValue);
             if (bestCounterMoveValue > bestPossibleMoveValue)
             {
                 bestPossibleMoveValue = bestCounterMoveValue;
