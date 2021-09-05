@@ -9,9 +9,9 @@ using System.Collections.Generic;
  * Auto-generated code below aims at helping you parse
  * the standard input according to the problem statement.
  **/
-class Player
+class Player2
 {
-    static void Main(string[] args)
+    static void Main2(string[] args)
     {
         var gravity = 3.711;
         var maxYAcc = 4 - gravity;
