@@ -18,7 +18,7 @@ public static class Weights
     public static double draftMyHPWeightConst = 0;
     public static double draftOpponentHPWeightMultiplier = -0.5;
     public static double draftOpponentHPWeightConst = 0;
-    public static double draftDrawWeightMultiplier = 2.5;
+    public static double draftDrawWeightMultiplier = 3.5;
     public static double draftDrawWeightCost = 0;
     public static double draftChooseCardCostMultiplier = -0.1;
     public static double draftHpXDmgMultiplier = 0.05;
@@ -37,13 +37,27 @@ public static class Weights
     public static double draftWardWeightConst = 0;
     public static double draftGuardHpAndDmgWeightMultiplier = 0.20;
     public static double draftGuardWeightMultiplier = 0.5;
-    public static double draftCostGravityCenter1 = 3.5;
-    public static double draftCostGravityCenter2 = 11;
-    public static double draftCostGravityForce = 0.2;
+    public static double draftGreenBreakthroughConst = 0.5;
+    public static double draftGreenChargeConst = 1;
+    public static double draftGreenDrainConst = 0.5;
+    public static double draftGreenLethalConst = 1;
+    public static double draftGreenWardConst = 1;
+    public static double draftCostGravityCenter1 = 3.2;
+    public static double draftCostGravityCenter2 = 14;
+    public static double draftCostGravityForce1 = 0.4;
+    public static double draftCostGravityForce2 = 3;
+    public static double draftCostGravityRadiusMulti1 = 1.5;
+    public static double draftCostGravityRadiusMulti2 = 3;
+
+    public static double draftCardAntiGravityForce = 2.5;
+    public static double draftCardAntiGravityRadius = 2;
 
     public static double roundMyHpWeight = 0.33;
+    public static double roundUnitOnDeskWeight = 2;
     public static double roundOpponentHpWeight = -0.33;
-    //public static double 
+    public static double roundMyRuneWeight = 0.33;
+    public static double roundOpponentRuneWeight = -0.33;
+    public static double roundEnemyOnDeskCardHate = 1.3;
 }
 public enum Location
 {
@@ -105,6 +119,7 @@ public class Card
         this.summoned = card.summoned;
         this.hadWard = card.hadWard;
         this.used = card.used;
+        this.cardDraw = card.cardDraw;
 
         this.rootCard.lastMutation = this;
     }
@@ -177,7 +192,7 @@ public class Player
         this.playerMana = player.playerMana;
         this.playerDeck = player.playerDeck;
         this.playerRune = player.playerRune;
-        this.draw = 1;
+        this.draw = player.draw;
 
         this.rootPlayer.lastMutation = this;
     }
@@ -220,7 +235,7 @@ public class Player
 public class Decider
 {
 
-    public bool debug = false;
+    public static bool debug = false;
     public static int turn = 0;
     public static List<Card> myCards;
     public static List<Card> opponentCards;
@@ -248,7 +263,7 @@ public class Decider
                 + Weights.draftDrawWeightMultiplier * card.cardDraw
                 + Weights.draftHpXDmgMultiplier * card.attack * card.defense
                 + Weights.draftChooseCardCostMultiplier
-                ) / (Math.Max(card.cost, 0.5) + 0.25)
+                ) / (Math.Max(card.cost, 0.5) + 0.75)
 
                 + (card.breakthrough ? Weights.draftBreakthroughWeightConst : 0)
                 + (card.drain ? Weights.draftDrainWeightConst : 0)
@@ -266,20 +281,14 @@ public class Decider
                 + Weights.draftDefenseWeightMultiplier * card.defense
                 + Weights.draftMyHPWeightMultiplier * card.myHealthChange
                 + Weights.draftOpponentHPWeightMultiplier * card.opponentHealthChange
-                + 0.5 * (
-                    (card.breakthrough ? Weights.draftBreakthroughDmgWeightMultiplier * card.attack : 0)
-                    + (card.charge ? Weights.draftChargeDmgWeightMultiplier * card.attack + Weights.draftChargeWeightMultiplier : 0)
-                    + (card.drain ? Weights.draftDrainDmgWeightConst * card.attack : 0)
-                    + (card.lethal ? Weights.draftLethalDmgWeightMultiplier * card.attack + Weights.draftLethalWeightMultiplier : 0)
-                    + (card.ward ? Weights.draftWardDmgWeightMultiplier * card.attack + Weights.draftWardWeightMultiplier : 0)
-                    )
                 + Weights.draftDrawWeightMultiplier * card.cardDraw
-                ) / (Math.Max(card.cost, 0.5) + 0.5)
+                ) / (Math.Max(card.cost, 0.9) + 0.75)
 
-                + (card.breakthrough ? Weights.draftBreakthroughWeightConst : 0)
-                + (card.drain ? Weights.draftDrainWeightConst : 0)
-                + (card.lethal ? Weights.draftLethalWeightConst : 0)
-                + (card.ward ? Weights.draftWardWeightConst : 0)
+                + (card.breakthrough ? Weights.draftGreenBreakthroughConst : 0)
+                + (card.charge ? Weights.draftGreenChargeConst : 0)
+                + (card.drain ? Weights.draftGreenDrainConst : 0)
+                + (card.lethal ? Weights.draftGreenLethalConst : 0)
+                + (card.ward ? Weights.draftGreenWardConst : 0)
                 + Weights.draftAttackWeightConst * card.attack
                 + Weights.draftDefenseWeightConst * card.defense
                 + Weights.draftMyHPWeightConst * card.myHealthChange
@@ -288,14 +297,14 @@ public class Decider
         }
         else if (card.cardType == CardType.RedItem || card.cardType == CardType.BlueItem)
         {
-            value = (-1.5 * Weights.draftAttackWeightMultiplier * card.attack
-                - 1.5 * Weights.draftDefenseWeightMultiplier * card.defense
+            value = (-1.7 * Weights.draftAttackWeightMultiplier * card.attack
+                - 2.8 * Weights.draftDefenseWeightMultiplier * Math.Max(-12, card.defense)
                 + Weights.draftMyHPWeightMultiplier * card.myHealthChange
                 + Weights.draftOpponentHPWeightMultiplier * card.opponentHealthChange
                 + (card.guard ? 0.5 : 0)
                 + (card.lethal ? 0.5 : 0)
                 + (card.ward ? 0.5 : 0)
-                ) / (Math.Max(card.cost, 0.5) + 0.5)
+                ) / (Math.Max(card.cost, 0.9) + 0.75)
 
                 - Weights.draftAttackWeightConst * card.attack
                 - Weights.draftDefenseWeightConst * card.defense
@@ -305,7 +314,11 @@ public class Decider
         }
         var totalCardsOfThisCost = deck.Count(deckCard => deckCard.cost == card.cost) * 1.0;
         var frequency = totalCardsOfThisCost / Math.Max(1, deck.Count);
-        value = value * (1 + Weights.draftCostGravityForce * (1.0 / (1 + Math.Pow(Math.Abs(card.cost - Weights.draftCostGravityCenter1), 2)) + 1.0 / (1 + Math.Pow(Math.Abs(card.cost - Weights.draftCostGravityCenter2), 2))));
+        value = value * (1 + Weights.draftCostGravityForce1 / (1.0 + Math.Pow((card.cost - Weights.draftCostGravityCenter1) / Weights.draftCostGravityRadiusMulti1, 2)) + Weights.draftCostGravityForce2 / (1.0 + Math.Pow(((card.cost - Weights.draftCostGravityCenter2) / Weights.draftCostGravityRadiusMulti2), 2)));
+        foreach (var handCard in myCards)
+        {
+            value -= Weights.draftCardAntiGravityForce / (2.0 + Math.Pow((card.cost - handCard.cost) / (Weights.draftCardAntiGravityRadius * handCard.cost), 2));
+        }
         card.value = value;
         return value;
     }
@@ -376,6 +389,7 @@ public class Decider
         {
             meMutation.playerHealth = meMutation.playerHealth + source.attack;
         }
+
 
         if (source.lethal && target != null)
         {
@@ -558,8 +572,8 @@ public class Decider
         }
         if (card.cardType == CardType.RedItem || card.cardType == CardType.BlueItem)
         {
-            value = 1.3 * (Weights.draftAttackWeightMultiplier * card.attack
-                + Weights.draftDefenseWeightMultiplier * card.defense
+            value = 1.3 * (-1 * Weights.draftAttackWeightMultiplier * card.attack
+                - 1.5 * Weights.draftDefenseWeightMultiplier * Math.Max(-12, card.defense)
                 + 0.33 * (
                 +(card.breakthrough ? Weights.draftBreakthroughDmgWeightMultiplier * card.attack : 0)
                 + (card.drain ? Weights.draftDrainDmgWeightConst * card.attack : 0)
@@ -582,7 +596,7 @@ public class Decider
     double estimateOnDeskCardValue(Card card)
     {
         var value = 0.0;
-        value = 1.0 +
+        value = Weights.roundUnitOnDeskWeight +
             Weights.draftAttackWeightMultiplier * card.attack
             + Weights.draftDefenseWeightMultiplier * card.defense
             + (card.breakthrough ? Weights.draftBreakthroughDmgWeightMultiplier * card.attack : 0)
@@ -628,18 +642,27 @@ public class Decider
         }
         foreach (var card in posOpponentCards)
         {
-            oppCardValue = oppCardValue + InGameCardValue(card, posMyCards, posOpponentCards, meLast, opponentLast);
+            oppCardValue = oppCardValue + Weights.roundEnemyOnDeskCardHate * InGameCardValue(card, posOpponentCards, posMyCards, opponentLast, meLast);
         }
         value = myCardValue - oppCardValue;
-        value += Weights.roundMyHpWeight * meLast.playerHealth + Math.Min(8 - posMyCards.Where(card => card.location == Location.myHand).Count(), meLast.draw) * 2;
+        var meLastRunes = meLast.playerRune;
+        var meLastHealth = meLast.playerHealth;
+        if (meLast.draw > meLast.playerDeck)
+        {
+            meLastRunes -= (meLast.draw - meLast.playerDeck) * 5;
+            meLastHealth = meLastRunes;
+        }
+        value += Weights.roundMyHpWeight * meLastHealth + Math.Min(8 - posMyCards.Where(card => card.location == Location.myHand).Count(), meLast.draw) * 2;
         value += Weights.roundOpponentHpWeight * opponentLast.playerHealth;
+        value += Weights.roundMyRuneWeight * meLastRunes;
+        value += Weights.roundOpponentRuneWeight * opponentLast.playerRune;
         if (opponentLast.playerHealth <= 0)
         {
-            value = lethalValue;
+            value += lethalValue + (actions.Count() > 0 ? lethalValue / 100 : 0);
         }
-        else if (meLast.playerHealth <= 0)
+        else if (meLastHealth <= 0)
         {
-            value = -lethalValue;
+            value += -lethalValue + (actions.Count() > 0 ? lethalValue / 100 : 0);
         }
         if (debug)
         {
@@ -839,8 +862,7 @@ public class Decider
 
             // HARMFULL OPTIMIZATION GO FOR FACE IF CAN
             // UNLESS OPPONENT HAS FEW CARDS ON TABLE AND WE DON'T WANT GIVE HIM DRAW
-            if (!(phase == Phase.attack && !enemyGuards.Any() && opponentLastCards.Count() > myLastDeskCards.Count() - 3
-                && myLastDeskCards.Any(card => card.canAttack && card.attack > 0))
+            if (!(phase == Phase.attack && !enemyGuards.Any() && opponentLastCards.Count() > myLastDeskCards.Count() - 3 && myLastDeskCards.Any(card => card.canAttack && card.attack > 0))
             // HARMFULL OPTIMIZATION Go FOR FACE WITH SUMMON IF CAN
                 && !(phase == Phase.attackWithSummon && !enemyGuards.Any() && myLastDeskCards.Any(card => card.canAttack && card.instanceId >= bounds.minInstanceIdForSummon))
             // HARMFULL OPTIMIZATION SUMMON SOMEONE IF CAN
@@ -1079,9 +1101,14 @@ public class Decider
                     .Where(card => (!enemyGuards.Any() || card?.guard == true) && ((card?.defenseInstanceId ?? 2000) == bounds.minOpponentInstanceIdToAttack
                     || ((bounds.opponentLastAttackedCard == null || bounds.opponentLastAttackedCard.rootCard.lastMutation.defense <= 0 || bounds.opponentLastAttackedCard.rootCard.ward) && (card?.defenseInstanceId ?? 2000) > bounds.minOpponentInstanceIdToAttack)
                     )).ToList();
+                var mySummonedCanAttackCards = myLastDeskCards.Where(card => card.summoned && (card.attack > 0 || card.lethal) && card.canAttack);
+                if (mySummonedCanAttackCards.Count() == 0 || mySummonedCanAttackCards.Count() == 0)
+                {
+                    CheckForPossibleMoves(actions, phase + 1, new BoundForAction(bounds));
+                    return;
+                }
                 foreach (var opponentCard in opponentCardsCanBeAttacked)// don't attack next if attacked previous and it's still alive or it's had ward)
                 {
-                    var mySummonedCanAttackCards = myLastDeskCards.Where(card => card.summoned && (card.attack > 0 || card.lethal) && card.canAttack);
                     foreach (var mySummoned in mySummonedCanAttackCards)
                     {
                         Action action = new Action()
@@ -1105,7 +1132,7 @@ public class Decider
                                 });
                         }
                         // We killed guard
-                        else if (attackedIntoGuard == true && opponentCard.rootCard.lastMutation.defense < 0)
+                        else if (attackedIntoGuard == true && opponentCard.rootCard.lastMutation.defense < 0 && myLastDeskCards.Any(card => card.canAttack))
                         {
                             CheckForPossibleMoves(actions, Phase.attack,
                                 new BoundForAction(bounds)
@@ -1118,7 +1145,7 @@ public class Decider
                         else
                         {
                             // We killed our last summon after we had 6 card on desk and now can summon again
-                            if (bounds.everMaxedBoard && mySummoned.rootCard.lastMutation.defense <= 0)
+                            if (bounds.everMaxedBoard && mySummoned.rootCard.lastMutation.defense <= 0 && myLastHandCards.Any(card => card.cardType == CardType.Creature))
                             {
                                 CheckForPossibleMoves(actions, Phase.summon, new BoundForAction(bounds)
                                 {
@@ -1192,7 +1219,7 @@ public class Decider
         myCards = _myCards;
         opponentCards = _opponentCards;
         bestPossibleActions = new List<Action>();
-        bestPossibleMoveValue = -1000;
+        bestPossibleMoveValue = -lethalValue;
         bestPossibleMoveFirstEval = true;
         enteredFindComb = 0;
         positionsEstimated = 0;
@@ -1217,7 +1244,7 @@ class Game
     public static Player opponent;
     public static int turn = 0;
     static DateTime turnStart;
-    static TimeSpan maximumTurnLength = TimeSpan.FromMilliseconds(100);
+    static TimeSpan maximumTurnLength = Decider.debug ? TimeSpan.FromMinutes(100) : TimeSpan.FromMilliseconds(100);
     static void Main(string[] args)
     {
         //bool IsPlayer0 = Environment.UserName.Last() == '1';
@@ -1254,8 +1281,8 @@ class Game
 
             input = Console.ReadLine();
             Console.Error.WriteLine("{0}", input);
-            int opponentHand = int.Parse(input.Split(" ")[0]);
-            int opponentActionsNumber = int.Parse(input.Split(" ")[1]);
+            int opponentHand = int.Parse(input.Split(' ')[0]);
+            int opponentActionsNumber = int.Parse(input.Split(' ')[1]);
             for (int i = 0; i < opponentActionsNumber; i++)
             {
                 input = Console.ReadLine();
